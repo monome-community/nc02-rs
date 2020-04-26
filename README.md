@@ -1,6 +1,6 @@
 > a gathering— a group study where participants each create a script according to a prompt. scripts are submitted by an established deadline. discussion and help will be provided to facilitate completion of scripts.
 >
-> this series will focus on softcut. for an introduction, see [softcut studies](https://monome.org/docs/norns/softcut/). for general norns scripting, see [norns studies](https://monome.org/docs/norns/studiy-1). this edition will also extensively use [clocks](https://monome.org/docs/norns/clocks). 
+> this series will focus on softcut. for an introduction, see [softcut studies](https://monome.org/docs/norns/softcut/). for general norns scripting, see [norns studies](https://monome.org/docs/norns/studiy-1). this edition will also extensively use [clocks](https://monome.org/docs/norns/clocks).
 >
 > upon completion we will release the pack of scripts as a collection along a bandcamp compilation of captures from each script. see [the collected past gatherings](https://llllllll.co/t/norns-circle-collected/30411).
 >
@@ -19,7 +19,7 @@ build a rhythmic, generative sound machine using provided tonal and percussive s
 - 3 clocks per voice which modify playback quality (keywords: location, elevation, presence)
 - no USB controllers, no audio input, no engines
 - map
-  - E1 volume 
+  - E1 volume
   - E2 velocity (overall tempo)
   - E3 regularity (simple rhythm vs. complex rhythm)
   - K2 shuffle
@@ -45,11 +45,9 @@ deadline: june 1
 
 to get started, go to maiden’s project manager, refresh the collection, and install `nc02-rs`. note, this will take some time to download as it includes some audio files.
 
-if you need a hint getting started, check out ???.lua
+if you need a hint getting started, check out `innominate.lua`.
 
-```
-basic intro script
-```
+i'll do a livestream first week of may do demonstrate some new techniques.
 
 ---
 
