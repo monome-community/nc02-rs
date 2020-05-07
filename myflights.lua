@@ -1,7 +1,13 @@
 
 local PARAMS_DEBUG = true
+local BUFF_DEBUG = PARAMS_DEBUG
 
-local perc, tonal
+local perc, tonal -- file names to load
+
+local buffer_index = {
+  samples_loaded = 0,
+  samples = {}
+}
 
 -- Control Spec Definitions (min, max, warp, step, default, unit)
 local cs_voice_num        = controlspec.new(1, 6, 'lin', 1, 1, 'num')
@@ -25,14 +31,26 @@ function init()
   perc = _path.code .. "nc02-rs/lib/nc02-perc.wav"
   tonal = _path.code .. "nc02-rs/lib/nc02-tonal.wav"
 
-  init_voice("perc_voice", perc)
+  init_voice("perc_voice", perc, 1)
+  
+  if (BUFF_DEBUG) then
+    tab.print(buffer_index)
+    tab.print(buffer_index.samples["perc_voice"])
+  end
 end
 
+
+
 -- todo: file to load and offsets of existing loaded data
-function init_voice(voice_name, file_name)
+function init_voice(voice_name, file_name, buff_num)
 
   local ch, samples, samplerate = audio.file_info(file_name)
+  local buff_samples = samples -- shim for allowing arbitrary writes to buffer
+  local pre_roll_time = .1 -- amount of time to pad the beginning of the sample in Seconds
+  local post_roll_time = pre_roll_time 
+  local buff_start_time = 0 -- time in the buffer to start loading sample data into
   local duration = samples/samplerate
+  
   print("loading file: "..file_name)
   print("  channels:\t"..ch)
   print("  samples:\t"..samples)
@@ -46,17 +64,34 @@ function init_voice(voice_name, file_name)
   params:add_control(voice_name.."_load_start", voice_name.."_load_start", 
     cs_sample_count
   )
+  params:set(voice_name.."_load_start", buff_start_time)
   params:add_control(voice_name.."_buffer", voice_name.."_buffer", 
     cs_buffer_num
   )
-  params:set(voice_name.."_buffer", 1)
+  params:set(voice_name.."_buffer", buff_num)
   softcut.buffer_read_mono(file_name,
-    params:get(voice_name.."_load_start"), -- read the file from the beginning
-    params:get(voice_name.."_load_start"), -- write into the buffer at the beginning
-    samples, -- load all samples
+    params:get(voice_name.."_load_start"),
+    params:get(voice_name.."_load_start") + pre_roll_time,
+    buff_samples,
     1, -- read from channel 1 of the source
-    params:get(voice_name.."_buffer") -- write to channel 1 of the buffer
+    params:get(voice_name.."_buffer")
   )
+
+  -- data loaded, save data in the buffer index
+  buffer_index.samples_loaded = buffer_index.samples_loaded + 1
+  buffer_index.samples[voice_name] = {
+    file_name       = file_name,
+    file_channels   = ch,
+    file_samples    = samples,
+    file_samplerate = samplerate,
+    file_duration   = duration,
+    buff_num        = buff_num,
+    buff_samples    = buff_samples,
+    buff_channel    = buff_channel, 
+    buff_start_time = buff_start_time,
+    pre_roll_time   = pre_roll_time,
+    post_roll_time  = post_roll_time
+  }
 
   -- set voice one to enabled
   -- https://monome.org/norns/modules/softcut.html#enable
