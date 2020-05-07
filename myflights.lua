@@ -78,24 +78,14 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   print("  buff_start_time:\t"..buff_start_time.." sec")
 
   -- load a mono sound file into a mono buffer
-  -- https://monome.org/norns/modules/softcut.html#buffer_read_mono
-  params:add_control(voice_name.."_load_start", voice_name.."_load_start", 
-    cs_sample_count
-  )
-  params:set(voice_name.."_load_start", buff_start_time)
-
-  params:add_control(voice_name.."_buffer", voice_name.."_buffer", 
-    cs_buffer_num
-  )
-  params:set(voice_name.."_buffer", buff_num)
-  
+  -- https://monome.org/norns/modules/softcut.html#buffer_read_mono  
   softcut.buffer_read_mono(
     file_name,
     0, -- start point in source file
     buff_start_time, -- start point in buffer to write
     buff_duration,
     1, -- read from channel 1 of the source
-    params:get(voice_name.."_buffer")
+    buff_num
   )
 
   -- data loaded, save data in the buffer index
@@ -132,7 +122,6 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
       ) 
     end
   )
-  -- todo: does this line up with ^
   params:set(voice_name.."_enable", 1)
 
 
@@ -141,11 +130,11 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
 
   -- assign to a softcut voice
   print("Voice: "..voice_num)
-  print("Buffer: "..params:get(voice_name.."_buffer"))
+  print("Buffer: "..buff_num)
 
   softcut.buffer(
     voice_num,
-    params:get(voice_name.."_buffer")
+    buff_num
   )
 
   -- set the playback level
