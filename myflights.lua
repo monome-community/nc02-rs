@@ -12,19 +12,19 @@ local buffer_index = {
 }
 
 -- Control Spec Definitions (min, max, warp, step, default, unit)
-local cs_voice_level      = controlspec.new(0, 1, 'exp', 0, 0, 'level')
+local cs_voice_level      = controlspec.new(0, 1, 'lin', 0, 0, 'lev')
 local cs_voice_loop_pos   = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_loop_time  = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
 local cs_voice_rate       = controlspec.new(-10, 10, 'lin', 0, 1, 's')
-local cs_voice_level_slew_time  = controlspec.new(0, 2, 'lin', 0, 0.2, 's')
+local cs_voice_rate_slew_time  = controlspec.new(0, 5, 'lin', 0, 0.2, 's')
 
 
 function init()
   perc = _path.code .. "nc02-rs/lib/nc02-perc.wav"
   tonal = _path.code .. "nc02-rs/lib/nc02-tonal.wav"
 
-  init_voice("perc_voice", perc, 1, 1) -- NOTE: loading voice 2 first
+  init_voice("perc_voice", perc, 1, 1)
   
   if (BUFF_DEBUG) then
     tab.print(buffer_index)
@@ -191,7 +191,6 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
       ) 
     end
   )
-  print("buff_start_time: "..buff_start_time)
   params:set(voice_name.."_loop_start", buff_start_time)
 
 
@@ -212,7 +211,6 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
       ) 
     end
   )
-  print("buff_start_time + buff_duration: "..(buff_start_time + buff_duration))
   params:set(voice_name..param_name, (buff_start_time + buff_duration))
 
 
@@ -261,21 +259,21 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
 
 
   -- https://monome.org/norns/modules/softcut.html#level_slew_time
-  params:add_control(voice_name.."_level_slew_time", voice_name.."_level_slew_time",
-    cs_voice_level_slew_time
+  params:add_control(voice_name.."_rate_slew_time", voice_name.."_rate_slew_time",
+    cs_voice_rate_slew_time
   )
-  params:set_action(voice_name.."_level_slew_time", 
+  params:set_action(voice_name.."_rate_slew_time", 
     function(x)
       if (PARAMS_DEBUG) then
-        print("Setting "..voice_name.."_level_slew_time to: "..x)
+        print("Setting "..voice_name.."_rate_slew_time to: "..x)
       end
-      softcut.level_slew_time(
+      softcut.rate_slew_time(
         voice_num,
-        x  
+        x
       ) 
     end
   )
-  params:set(voice_name.."_level_slew_time", 0.3)
+  params:set(voice_name.."_rate_slew_time", 0.3)
 
   -- set a conservative polling rate of .5 Seconds
   softcut.phase_quant(voice_num, 0.5)
