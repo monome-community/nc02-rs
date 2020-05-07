@@ -43,8 +43,17 @@ function init()
     tab.print(buffer_index.samples["tonal_voice"])
   end
 
+  -- setup a poll
+  --softcut.phase_quant(voice,time)
+  --softcut.event_phase(update_positions)
+  --softcut.poll_start_phase()
+
   params:bang()
 
+end
+
+function update_positions(voice,position)
+  print(voice,position)
 end
 
 
@@ -68,8 +77,6 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   print("  pre_roll_time:\t"..pre_roll_time.." sec")
   print("  post_roll_time:\t"..post_roll_time.." sec")
   print("  buff_start_time:\t"..buff_start_time.." sec")
-
-  params:add_control(voice_name.."_num",voice_name.."_num",cs_voice_num)
 
   -- load a mono sound file into a mono buffer
   -- https://monome.org/norns/modules/softcut.html#buffer_read_mono
@@ -121,7 +128,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name.."_enable to: "..x)
       end
       softcut.enable(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
@@ -134,12 +141,11 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   -- https://monome.org/norns/modules/softcut.html#buffer
 
   -- assign to a softcut voice
-  params:set(voice_name.."_num", voice_num)
-  print("Voice: "..params:get(voice_name.."_num"))
+  print("Voice: "..voice_num)
   print("Buffer: "..params:get(voice_name.."_buffer"))
 
   softcut.buffer(
-    params:get(voice_name.."_num"),
+    voice_num,
     params:get(voice_name.."_buffer")
   )
 
@@ -154,7 +160,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name.."_level to: "..x)
       end
       softcut.level(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
@@ -173,7 +179,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name.."_loop to: "..x)
       end
       softcut.loop(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
@@ -192,7 +198,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name.."_loop_start to: "..x)
       end
       softcut.loop_start(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
@@ -213,7 +219,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name..param_name.." to: "..x)
       end
       softcut.loop_end(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
@@ -224,22 +230,10 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
 
   -- set position
   -- https://monome.org/norns/modules/softcut.html#position
-  local position_param_name = voice_name.."_position"
-  params:add_control(position_param_name, position_param_name,
-    cs_voice_loop_pos
-  )
-  params:set_action(position_param_name, 
-    function(x)
-      if (PARAMS_DEBUG) then
-        print("Setting "..voice_name.."_position to: "..x)
-      end
-      softcut.position(
-        params:get(voice_name.."_num"),
-        x  
-      ) 
-    end
-  )
-  params:set(position_param_name, buff_start_time)
+  softcut.position(
+    voice_num,
+    buff_start_time
+  ) 
 
 
   -- https://monome.org/norns/modules/softcut.html#fade_time
@@ -252,7 +246,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name.."_fade_time to: "..x)
       end
       softcut.fade_time(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
@@ -270,7 +264,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name.."_rate to: "..x)
       end
       softcut.rate(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
@@ -288,41 +282,53 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_name.."_level_slew_time to: "..x)
       end
       softcut.level_slew_time(
-        params:get(voice_name.."_num"),
+        voice_num,
         x  
       ) 
     end
   )
   params:set(voice_name.."_level_slew_time", 0.3)
 
-  return position_param_name
+  -- set a conservative polling rate of .5 Seconds
+  softcut.phase_quant(voice_num, 0.5)
 end
+
 
 function key(n,z)
   if (n==2 and z==1) then
     print("Playing Perc Voice: "..params:get("perc_voice_num"))
-    -- params:set("perc_voice_position", 0.1)
 
-    -- params:set("perc_voice_loop_end", params:get("tonal_voice_loop_end"))
+    softcut.position(
+      buffer_index.samples["perc_voice"].voice_num, 
+      buffer_index.samples["perc_voice"].buff_start_time
+    )
 
-    softcut.pan(params:get("perc_voice_num"),0.75)
+    softcut.pan(
+      buffer_index.samples["perc_voice"].voice_num, 
+      0.75
+    )
+
     softcut.play(
-      params:get("perc_voice_num"),
+      buffer_index.samples["perc_voice"].voice_num,
       1
     )
   end
 
   if (n==3 and z==1) then
     print("Playing Tonal Voice: "..params:get("tonal_voice_num"))
-    -- params:set("tonal_voice_position", 0.1)
 
-    -- @todo: I don't understand how this doesn't play voice 1 (perc) loop params via voice 2
-    -- params:set("tonal_voice_loop_start", params:get("perc_voice_loop_start"))
-    --params:set("tonal_voice_loop_end", params:get("perc_voice_loop_end"))
+    softcut.position(
+      buffer_index.samples["tonal_voice"].voice_num, 
+      buffer_index.samples["tonal_voice"].buff_start_time
+    )
 
-    softcut.pan(params:get("tonal_voice_num"),0.45)
+    softcut.pan(
+      buffer_index.samples["tonal_voice"].voice_num, 
+      0.25
+    )
+
     softcut.play(
-      params:get("tonal_voice_num"),
+      buffer_index.samples["tonal_voice"].voice_num,
       1
     )
   end
