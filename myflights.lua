@@ -13,15 +13,14 @@ local buffer_index = {
 
 -- Control Spec Definitions (min, max, warp, step, default, unit)
 local cs_voice_num        = controlspec.new(1, 6, 'lin', 1, 1, 'num')
-local cs_sample_phasor    = controlspec.new(0, 1, 'lin', 0, 0, 'phase')
 local cs_voice_enable     = controlspec.new(0, 1, 'lin', 1, 0, 'enable')
 local cs_buffer_num       = controlspec.new(1, 2, 'lin', 1, 1, 'buffnum')
-local cs_voice_level      = controlspec.new(0, 1, 'lin', 0, 0, 'level')
+local cs_voice_level      = controlspec.new(0, 1, 'exp', 0, 0, 'level')
 local cs_voice_loop       = controlspec.new(0, 1, 'lin', 1, 0, 'loop')
 local cs_voice_loop_pos   = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_loop_time  = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
-local cs_voice_rate       = controlspec.new(0, 10, 'lin', 0, 1, 's')
+local cs_voice_rate       = controlspec.new(-10, 10, 'lin', 0, 1, 's')
 local cs_voice_level_slew_time  = controlspec.new(0, 2, 'lin', 0, 0.2, 's')
 
 
@@ -296,7 +295,7 @@ end
 
 function key(n,z)
   if (n==2 and z==1) then
-    print("Playing Perc Voice: "..params:get("perc_voice_num"))
+    print("Playing Perc Voice: "..buffer_index.samples["perc_voice"].voice_num)
 
     softcut.position(
       buffer_index.samples["perc_voice"].voice_num, 
@@ -315,7 +314,7 @@ function key(n,z)
   end
 
   if (n==3 and z==1) then
-    print("Playing Tonal Voice: "..params:get("tonal_voice_num"))
+    print("Playing Tonal Voice: "..buffer_index.samples["tonal_voice"].voice_num)
 
     softcut.position(
       buffer_index.samples["tonal_voice"].voice_num, 
