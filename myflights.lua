@@ -12,11 +12,7 @@ local buffer_index = {
 }
 
 -- Control Spec Definitions (min, max, warp, step, default, unit)
-local cs_voice_num        = controlspec.new(1, 6, 'lin', 1, 1, 'num')
-local cs_voice_enable     = controlspec.new(0, 1, 'lin', 1, 0, 'enable')
-local cs_buffer_num       = controlspec.new(1, 2, 'lin', 1, 1, 'buffnum')
 local cs_voice_level      = controlspec.new(0, 1, 'exp', 0, 0, 'level')
-local cs_voice_loop       = controlspec.new(0, 1, 'lin', 1, 0, 'loop')
 local cs_voice_loop_pos   = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_loop_time  = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
@@ -108,8 +104,10 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
 
   -- set voice enabled
   -- https://monome.org/norns/modules/softcut.html#enable
-  params:add_control(voice_name.."_enable", voice_name.."_enable", 
-    cs_voice_enable
+  params:add_number(voice_name.."_enable", voice_name.."_enable", 
+    0, -- min
+    1, -- max
+    0 -- default
   )
   params:set_action(voice_name.."_enable", 
     function(x)
@@ -158,8 +156,10 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
 
   -- set loop enable
   -- https://monome.org/norns/modules/softcut.html#loop
-  params:add_control(voice_name.."_loop", voice_name.."_loop", 
-    cs_voice_loop
+  params:add_number(voice_name.."_loop", voice_name.."_loop", 
+    0, 
+    1, 
+    0
   )
   params:set_action(voice_name.."_loop", 
     function(x)
