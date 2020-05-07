@@ -13,7 +13,6 @@ local buffer_index = {
 
 -- Control Spec Definitions (min, max, warp, step, default, unit)
 local cs_voice_level      = controlspec.new(0, 1, 'lin', 0, 0, 'lev')
-local cs_voice_loop_pos   = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_loop_time  = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
 local cs_voice_rate       = controlspec.new(-10, 10, 'lin', 0, 1, 's')
@@ -104,23 +103,10 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
 
   -- set voice enabled
   -- https://monome.org/norns/modules/softcut.html#enable
-  params:add_number(voice_name.."_enable", voice_name.."_enable", 
-    0, -- min
-    1, -- max
-    0 -- default
+  softcut.enable(
+    voice_num,
+    1
   )
-  params:set_action(voice_name.."_enable", 
-    function(x)
-      if (PARAMS_DEBUG) then
-        print("Setting "..voice_name.."_enable to: "..x)
-      end
-      softcut.enable(
-        voice_num,
-        x  
-      ) 
-    end
-  )
-  params:set(voice_name.."_enable", 1)
 
 
   -- attach the voice number to the buffer where the data was loaded
