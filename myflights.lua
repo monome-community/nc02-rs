@@ -1,17 +1,19 @@
 
+local PARAMS_DEBUG = true
+
 local perc, tonal
 
 -- Control Spec Definitions (min, max, warp, step, default, unit)
-local cs_voice_num      = controlspec.new(1,6,'lin',1,1,'num')
-local cs_sample_phasor  = controlspec.new(0, 1, 'lin', 0, 0, 'phase')
-local cs_voice_enable   = controlspec.new(0, 1, 'lin', 1, 0, 'enable')
-local cs_buffer_num     = controlspec.new(1, 2, 'lin', 1, 1, 'buffnum')
-local cs_voice_level    = controlspec.new(0, 1, 'lin', 0, 0, 'level')
-local cs_voice_loop     = controlspec.new(0, 1, 'lin', 1, 0, 'loop')
-local cs_voice_loop_pos = controlspec.new(0, 10, 'lin', 0, 0, 's')
-local cs_voice_fade_time      = controlspec.new(0, 5, 'lin', 0, .01, 's')
-local cs_voice_playback_rate  = controlspec.new(0, 10, 'lin', 0, 1, 's')
-local cs_voice_slew_time      = controlspec.new(0, 2, 'lin', 0, 0.1, 's')
+local cs_voice_num        = controlspec.new(1, 6, 'lin', 1, 1, 'num')
+local cs_sample_phasor    = controlspec.new(0, 1, 'lin', 0, 0, 'phase')
+local cs_voice_enable     = controlspec.new(0, 1, 'lin', 1, 0, 'enable')
+local cs_buffer_num       = controlspec.new(1, 2, 'lin', 1, 1, 'buffnum')
+local cs_voice_level      = controlspec.new(0, 1, 'lin', 0, 0, 'level')
+local cs_voice_loop       = controlspec.new(0, 1, 'lin', 1, 0, 'loop')
+local cs_voice_loop_pos   = controlspec.new(0, 10, 'lin', 0, 0, 's')
+local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
+local cs_voice_rate       = controlspec.new(0, 10, 'lin', 0, 1, 's')
+local cs_voice_level_slew_time  = controlspec.new(0, 2, 'lin', 0, 0.2, 's')
 
 -- provide a pattern mask
 -- local mask = [0, 0, 0, 1]
@@ -61,11 +63,19 @@ function init_voice(voice_name, file_name)
   params:add_control(voice_name.."_enable", voice_name.."_enable", 
     cs_voice_enable
   )
-  params:set(voice_name.."_enable", 1)
-  softcut.enable(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_enable")
+  params:set_action(voice_name.."_enable", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_enable to: "..x)
+      end
+      softcut.enable(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_enable", 1)
+
 
   -- attach the voice number to the buffer where the data was loaded
   -- https://monome.org/norns/modules/softcut.html#buffer
@@ -79,81 +89,148 @@ function init_voice(voice_name, file_name)
   params:add_control(voice_name.."_level", voice_name.."_level", 
     cs_voice_level
   )
-  params:set(voice_name.."_level", 1.0)
-  softcut.level(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_level")
+  params:set_action(voice_name.."_level", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_level to: "..x)
+      end
+      softcut.level(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_level", 1.0)
+
 
   -- disable loop
   -- https://monome.org/norns/modules/softcut.html#loop
   params:add_control(voice_name.."_loop", voice_name.."_loop", 
     cs_voice_loop
   )
-  params:set(voice_name.."_loop", 0)
-  softcut.loop(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_loop")
+  params:set_action(voice_name.."_loop", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_loop to: "..x)
+      end
+      softcut.loop(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_loop", 0)
+
 
   -- set loop start to 0s
   -- https://monome.org/norns/modules/softcut.html#loop_start
   params:add_control(voice_name.."_loop_start", voice_name.."_loop_start", 
     cs_voice_loop_pos
   )
-  params:set(voice_name.."_loop_start", 0)
-  softcut.loop_start(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_loop_start")
+  params:set_action(voice_name.."_loop_start", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_loop_start to: "..x)
+      end
+      softcut.loop_start(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_loop_start", 0)
+
 
   -- set loop end to 10s @todo use actual sample data and padding values
   -- https://monome.org/norns/modules/softcut.html#loop_end
   params:add_control(voice_name.."_loop_end", voice_name.."_loop_end", 
     cs_voice_loop_pos
   )
-  params:set(voice_name.."_loop_end", 10)
-  softcut.loop_end(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_loop_end")
+  params:set_action(voice_name.."_loop_end", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_loop_end to: "..x)
+      end
+      softcut.loop_end(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_loop_end", duration)
+
 
   -- https://monome.org/norns/modules/softcut.html#position
   params:add_control(voice_name.."_position", voice_name.."_position",
     cs_voice_loop_pos
   )
-  params:set(voice_name.."_position", 0)
-  softcut.position(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_position")
+  params:set_action(voice_name.."_position", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_position to: "..x)
+      end
+      softcut.position(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_position", 0)
+
 
   -- https://monome.org/norns/modules/softcut.html#fade_time
   params:add_control(voice_name.."_fade_time", voice_name.."_fade_time",
     cs_voice_fade_time
   )
-  softcut.fade_time(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_fade_time")
+  params:set_action(voice_name.."_fade_time", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_fade_time to: "..x)
+      end
+      softcut.fade_time(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_fade_time", 0.1)
+
 
   -- https://monome.org/norns/modules/softcut.html#rate
-  params:add_control(voice_name.."_playback_rate", voice_name.."_playback_rate", 
-    cs_voice_playback_rate
+  params:add_control(voice_name.."_rate", voice_name.."_rate", 
+    cs_voice_rate
   )
-  softcut.rate(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_playback_rate")
+  params:set_action(voice_name.."_rate", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_rate to: "..x)
+      end
+      softcut.rate(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_rate", 1)
+
 
   -- https://monome.org/norns/modules/softcut.html#level_slew_time
-  params:add_control(voice_name.."_slew_time", voice_name.."_slew_time",
-    cs_voice_slew_time
+  params:add_control(voice_name.."_level_slew_time", voice_name.."_level_slew_time",
+    cs_voice_level_slew_time
   )
-  softcut.level_slew_time(
-    params:get(voice_name.."_num"),
-    params:get(voice_name.."_slew_time")
+  params:set_action(voice_name.."_level_slew_time", 
+    function(x)
+      if (PARAMS_DEBUG) then
+        print("Setting "..voice_name.."_level_slew_time to: "..x)
+      end
+      softcut.level_slew_time(
+        params:get(voice_name.."_num"),
+        x  
+      ) 
+    end
   )
+  params:set(voice_name.."_level_slew_time", 0.3)
+
 end
 
 function key(n,z)
