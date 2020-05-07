@@ -2,15 +2,31 @@
 local PARAMS_DEBUG = true
 local BUFF_DEBUG = false
 
-local perc_file, tonal_file -- file names to load
-
-local level_param = "_level"
+local perc_file, tonal_file, my_file -- file names to load
 
 local buffer_index = {
   samples_loaded = 0,
   start_time = 0,
   end_time = 0,
   samples = {}
+}
+
+local voices = {
+  one = {
+    num = 1,
+    name = "voice_one",
+    params = {}
+  },
+  two = {
+    num = 2,
+    name = "voice_two",
+    params = {}
+  },
+  three = {
+    num = 3,
+    name = "voice_three",
+    params = {}
+  }
 }
 
 -- Control Spec Definitions (min, max, warp, step, default, unit)
@@ -25,18 +41,18 @@ function init()
   perc_file = _path.code .. "nc02-rs/lib/nc02-perc.wav"
   tonal_file = _path.code .. "nc02-rs/lib/nc02-tonal.wav"
 
-  init_voice("perc_voice", perc_file, 1, 1)
+  init_voice(voices.one, perc_file, 1)
   
   if (BUFF_DEBUG) then
     tab.print(buffer_index)
-    tab.print(buffer_index.samples["perc_voice"])
+    tab.print(buffer_index.samples[voice.one.name])
   end
 
-  init_voice("tonal_voice", tonal_file, 1, 2)
+  init_voice(voices.two, tonal_file, 1)
   
   if (BUFF_DEBUG) then
     tab.print(buffer_index)
-    tab.print(buffer_index.samples["tonal_voice"])
+    tab.print(buffer_index.samples[voice_two_name])
   end
 
   -- setup a poll
@@ -53,7 +69,7 @@ function update_positions(voice,position)
 end
 
 
-function init_voice(voice_name, file_name, buff_num, voice_num)
+function init_voice(voice, file_name, buff_num)
 
   local ch, samples, samplerate = audio.file_info(file_name)
   local buff_duration = samples / samplerate
@@ -67,7 +83,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   print("  samples:\t"..samples)
   print("  sample rate:\t"..samplerate.."hz")
   print("  duration:\t"..duration.." sec")
-  print("  voice_num:\t"..voice_num)
+  print("  voice_num:\t"..voice.num)
   print("  buff_num:\t"..buff_num)
   print("  buff_duration:\t"..buff_duration.." sec")
   print("  pre_roll_time:\t"..pre_roll_time.." sec")
@@ -88,36 +104,36 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   -- data loaded, save data in the buffer index
   buffer_index.samples_loaded = buffer_index.samples_loaded + 1
   buffer_index.end_time = pre_roll_time + buff_duration + post_roll_time
-  buffer_index.samples[voice_name] = {
+  buffer_index.samples[voice.name] = {
     file_name       = file_name,
     file_channels   = ch,
     file_samples    = samples,
     file_samplerate = samplerate,
     file_duration   = duration,
-    voice_num       = voice_num,
+    voice_num       = voice.num,
     buff_num        = buff_num,
     buff_duration   = buff_duration,
     buff_channel    = buff_channel, 
     buff_start_time = buff_start_time,
     pre_roll_time   = pre_roll_time,
     post_roll_time  = post_roll_time,
-    params          = {
-      level           = voice_name.."_level",
-      loop            = voice_name.."_loop",
-      loop_start      = voice_name.."_loop_start",
-      loop_end        = voice_name.."_loop_end",
-      fade_time       = voice_name.."_fade_time",
-      rate            = voice_name.."_rate",
-      rate_slew_time  = voice_name.."_rate_slew_time"
+    params          = { -- nested table to make it easy to reference voice params
+      level           = voice.name.."_level",
+      loop            = voice.name.."_loop",
+      loop_start      = voice.name.."_loop_start",
+      loop_end        = voice.name.."_loop_end",
+      fade_time       = voice.name.."_fade_time",
+      rate            = voice.name.."_rate",
+      rate_slew_time  = voice.name.."_rate_slew_time"
     }
   }
 
-  voice_params = buffer_index.samples[voice_name].params
+  voice_params = buffer_index.samples[voice.name].params
 
   -- set voice enabled
   -- https://monome.org/norns/modules/softcut.html#enable
   softcut.enable(
-    voice_num,
+    voice.num,
     1
   )
 
@@ -126,11 +142,11 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   -- https://monome.org/norns/modules/softcut.html#buffer
 
   -- assign to a softcut voice
-  print("Voice: "..voice_num)
+  print("Voice: "..voice.num)
   print("Buffer: "..buff_num)
 
   softcut.buffer(
-    voice_num,
+    voice.num,
     buff_num
   )
 
@@ -145,7 +161,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_params.level.." to: "..x)
       end
       softcut.level(
-        voice_num,
+        voice.num,
         x  
       ) 
     end
@@ -166,7 +182,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_params.loop.." to: "..x)
       end
       softcut.loop(
-        voice_num,
+        voice.num,
         x  
       ) 
     end
@@ -185,7 +201,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_params.loop_start.." to: "..x)
       end
       softcut.loop_start(
-        voice_num,
+        voice.num,
         x  
       ) 
     end
@@ -204,7 +220,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_params.loop_end.." to: "..x)
       end
       softcut.loop_end(
-        voice_num,
+        voice.num,
         x  
       ) 
     end
@@ -215,7 +231,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   -- set position
   -- https://monome.org/norns/modules/softcut.html#position
   softcut.position(
-    voice_num,
+    voice.num,
     buff_start_time
   ) 
 
@@ -230,7 +246,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_params.fade_time.." to: "..x)
       end
       softcut.fade_time(
-        voice_num,
+        voice.num,
         x  
       ) 
     end
@@ -248,7 +264,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_params.rate.." to: "..x)
       end
       softcut.rate(
-        voice_num,
+        voice.num,
         x  
       ) 
     end
@@ -266,7 +282,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
         print("Setting "..voice_params.rate_slew_time.." to: "..x)
       end
       softcut.rate_slew_time(
-        voice_num,
+        voice.num,
         x
       ) 
     end
@@ -274,45 +290,45 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   params:set(voice_params.rate_slew_time, 0.3)
 
   -- set a conservative polling rate of .5 Seconds
-  softcut.phase_quant(voice_num, 0.5)
+  softcut.phase_quant(voice.num, 0.5)
 end
 
 
 function key(n,z)
   if (n==2 and z==1) then
-    print("Playing Perc Voice: "..buffer_index.samples["perc_voice"].voice_num)
+    print("Playing Perc Voice: "..buffer_index.samples.voice_one.voice_num)
 
     softcut.position(
-      buffer_index.samples["perc_voice"].voice_num, 
-      buffer_index.samples["perc_voice"].buff_start_time
+      buffer_index.samples["voice_one"].voice_num, 
+      buffer_index.samples["voice_one"].buff_start_time
     )
 
     softcut.pan(
-      buffer_index.samples["perc_voice"].voice_num, 
+      buffer_index.samples["voice_one"].voice_num, 
       0.75
     )
 
     softcut.play(
-      buffer_index.samples["perc_voice"].voice_num,
+      buffer_index.samples["voice_one"].voice_num,
       1
     )
   end
 
   if (n==3 and z==1) then
-    print("Playing Tonal Voice: "..buffer_index.samples["tonal_voice"].voice_num)
+    print("Playing Tonal Voice: "..buffer_index.samples["voice_two"].voice_num)
 
     softcut.position(
-      buffer_index.samples["tonal_voice"].voice_num, 
-      buffer_index.samples["tonal_voice"].buff_start_time
+      buffer_index.samples["voice_two"].voice_num, 
+      buffer_index.samples["voice_two"].buff_start_time
     )
 
     softcut.pan(
-      buffer_index.samples["tonal_voice"].voice_num, 
+      buffer_index.samples["voice_two"].voice_num, 
       0.25
     )
 
     softcut.play(
-      buffer_index.samples["tonal_voice"].voice_num,
+      buffer_index.samples["voice_two"].voice_num,
       1
     )
   end
