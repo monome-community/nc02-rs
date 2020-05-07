@@ -18,23 +18,18 @@ local cs_voice_enable     = controlspec.new(0, 1, 'lin', 1, 0, 'enable')
 local cs_buffer_num       = controlspec.new(1, 2, 'lin', 1, 1, 'buffnum')
 local cs_voice_level      = controlspec.new(0, 1, 'lin', 0, 0, 'level')
 local cs_voice_loop       = controlspec.new(0, 1, 'lin', 1, 0, 'loop')
-local cs_voice_loop_pos   = controlspec.new(0, 1000, 'lin', 0, 0, 'phase')
-local cs_voice_loop_time  = controlspec.new(0, 1000, 'lin', 0, 0, 's')
+local cs_voice_loop_pos   = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
+local cs_voice_loop_time  = controlspec.new(0, 40, 'lin', 0, 0.01, 's')
 local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
 local cs_voice_rate       = controlspec.new(0, 10, 'lin', 0, 1, 's')
 local cs_voice_level_slew_time  = controlspec.new(0, 2, 'lin', 0, 0.2, 's')
 
--- provide a pattern mask
--- local mask = [0, 0, 0, 1]
 
--- divide the sample length by the number of steps in the pattern mask
--- provide an offset value for each step, scalar value combines
-local ppn
 function init()
   perc = _path.code .. "nc02-rs/lib/nc02-perc.wav"
   tonal = _path.code .. "nc02-rs/lib/nc02-tonal.wav"
 
-  ppn = init_voice("perc_voice", perc, 1, 1)
+  init_voice("perc_voice", perc, 1, 1) -- NOTE: loading voice 2 first
   
   if (BUFF_DEBUG) then
     tab.print(buffer_index)
@@ -47,10 +42,12 @@ function init()
     tab.print(buffer_index)
     tab.print(buffer_index.samples["tonal_voice"])
   end
+
+  params:bang()
+
 end
 
 
--- todo: file to load and offsets of existing loaded data
 function init_voice(voice_name, file_name, buff_num, voice_num)
 
   local ch, samples, samplerate = audio.file_info(file_name)
@@ -65,6 +62,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   print("  samples:\t"..samples)
   print("  sample rate:\t"..samplerate.."hz")
   print("  duration:\t"..duration.." sec")
+  print("  voice_num:\t"..voice_num)
   print("  buff_num:\t"..buff_num)
   print("  buff_duration:\t"..buff_duration.." sec")
   print("  pre_roll_time:\t"..pre_roll_time.." sec")
@@ -103,6 +101,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
     file_samples    = samples,
     file_samplerate = samplerate,
     file_duration   = duration,
+    voice_num       = voice_num,
     buff_num        = buff_num,
     buff_duration   = buff_duration,
     buff_channel    = buff_channel, 
@@ -111,7 +110,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
     post_roll_time  = post_roll_time
   }
 
-  -- set voice one to enabled
+  -- set voice enabled
   -- https://monome.org/norns/modules/softcut.html#enable
   params:add_control(voice_name.."_enable", voice_name.."_enable", 
     cs_voice_enable
@@ -240,7 +239,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
       ) 
     end
   )
-  params:set(position_param_name, 0)
+  params:set(position_param_name, buff_start_time)
 
 
   -- https://monome.org/norns/modules/softcut.html#fade_time
@@ -301,9 +300,12 @@ end
 
 function key(n,z)
   if (n==2 and z==1) then
-    print("Playing Perc Voice")
-    params:set("perc_voice_position", 0.1)
+    print("Playing Perc Voice: "..params:get("perc_voice_num"))
+    -- params:set("perc_voice_position", 0.1)
 
+    -- params:set("perc_voice_loop_end", params:get("tonal_voice_loop_end"))
+
+    softcut.pan(params:get("perc_voice_num"),0.75)
     softcut.play(
       params:get("perc_voice_num"),
       1
@@ -311,9 +313,14 @@ function key(n,z)
   end
 
   if (n==3 and z==1) then
-    print("Playing Tonal Voice")
-    params:set("tonal_voice_position", 0.2)
+    print("Playing Tonal Voice: "..params:get("tonal_voice_num"))
+    -- params:set("tonal_voice_position", 0.1)
 
+    -- @todo: I don't understand how this doesn't play voice 1 (perc) loop params via voice 2
+    -- params:set("tonal_voice_loop_start", params:get("perc_voice_loop_start"))
+    --params:set("tonal_voice_loop_end", params:get("perc_voice_loop_end"))
+
+    softcut.pan(params:get("tonal_voice_num"),0.45)
     softcut.play(
       params:get("tonal_voice_num"),
       1
