@@ -18,7 +18,8 @@ local cs_voice_enable     = controlspec.new(0, 1, 'lin', 1, 0, 'enable')
 local cs_buffer_num       = controlspec.new(1, 2, 'lin', 1, 1, 'buffnum')
 local cs_voice_level      = controlspec.new(0, 1, 'lin', 0, 0, 'level')
 local cs_voice_loop       = controlspec.new(0, 1, 'lin', 1, 0, 'loop')
-local cs_voice_loop_pos   = controlspec.new(0, 1000, 'lin', 0, 0, 's')
+local cs_voice_loop_pos   = controlspec.new(0, 1000, 'lin', 0, 0, 'phase')
+local cs_voice_loop_time  = controlspec.new(0, 1000, 'lin', 0, 0, 's')
 local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
 local cs_voice_rate       = controlspec.new(0, 10, 'lin', 0, 1, 's')
 local cs_voice_level_slew_time  = controlspec.new(0, 2, 'lin', 0, 0.2, 's')
@@ -184,7 +185,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   -- set loop start to buffer_start_time
   -- https://monome.org/norns/modules/softcut.html#loop_start
   params:add_control(voice_name.."_loop_start", voice_name.."_loop_start", 
-    cs_voice_loop_pos
+    cs_voice_loop_time
   )
   params:set_action(voice_name.."_loop_start", 
     function(x)
@@ -205,7 +206,7 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   -- https://monome.org/norns/modules/softcut.html#loop_end
   local param_name = "_loop_end"
   params:add_control(voice_name..param_name, voice_name..param_name, 
-    cs_voice_loop_pos
+    cs_voice_loop_time
   )
   params:set_action(voice_name..param_name, 
     function(x)
@@ -225,7 +226,6 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
   -- set position
   -- https://monome.org/norns/modules/softcut.html#position
   local position_param_name = voice_name.."_position"
-  print("position_param_name: "..position_param_name)
   params:add_control(position_param_name, position_param_name,
     cs_voice_loop_pos
   )
@@ -300,15 +300,23 @@ function init_voice(voice_name, file_name, buff_num, voice_num)
 end
 
 function key(n,z)
-  params:set(ppn, 0) -- todo: this doesn't work
-  softcut.position(
-    params:get("perc_voice_num"),
-    params:get("perc_voice_position")
-  )
+  if (n==2 and z==1) then
+    print("Playing Perc Voice")
+    params:set("perc_voice_position", 0.1)
 
-  softcut.play(
-    params:get("perc_voice_num"),
-    1
-  )
+    softcut.play(
+      params:get("perc_voice_num"),
+      1
+    )
+  end
 
+  if (n==3 and z==1) then
+    print("Playing Tonal Voice")
+    params:set("tonal_voice_position", 0.2)
+
+    softcut.play(
+      params:get("tonal_voice_num"),
+      1
+    )
+  end
 end
