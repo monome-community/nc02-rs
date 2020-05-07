@@ -1,11 +1,13 @@
 
 local PARAMS_DEBUG = true
-local BUFF_DEBUG = PARAMS_DEBUG
+local BUFF_DEBUG = false
 
 local perc, tonal -- file names to load
 
 local buffer_index = {
   samples_loaded = 0,
+  start_time = 0,
+  end_time = 0,
   samples = {}
 }
 
@@ -16,7 +18,7 @@ local cs_voice_enable     = controlspec.new(0, 1, 'lin', 1, 0, 'enable')
 local cs_buffer_num       = controlspec.new(1, 2, 'lin', 1, 1, 'buffnum')
 local cs_voice_level      = controlspec.new(0, 1, 'lin', 0, 0, 'level')
 local cs_voice_loop       = controlspec.new(0, 1, 'lin', 1, 0, 'loop')
-local cs_voice_loop_pos   = controlspec.new(0, 10, 'lin', 0, 0, 's')
+local cs_voice_loop_pos   = controlspec.new(0, 1000, 'lin', 0, 0, 's')
 local cs_voice_fade_time  = controlspec.new(0, 5, 'lin', 0, 0.1, 's')
 local cs_voice_rate       = controlspec.new(0, 10, 'lin', 0, 1, 's')
 local cs_voice_level_slew_time  = controlspec.new(0, 2, 'lin', 0, 0.2, 's')
@@ -26,36 +28,47 @@ local cs_voice_level_slew_time  = controlspec.new(0, 2, 'lin', 0, 0.2, 's')
 
 -- divide the sample length by the number of steps in the pattern mask
 -- provide an offset value for each step, scalar value combines
-
+local ppn
 function init()
   perc = _path.code .. "nc02-rs/lib/nc02-perc.wav"
   tonal = _path.code .. "nc02-rs/lib/nc02-tonal.wav"
 
-  init_voice("perc_voice", perc, 1)
+  ppn = init_voice("perc_voice", perc, 1, 1)
   
   if (BUFF_DEBUG) then
     tab.print(buffer_index)
     tab.print(buffer_index.samples["perc_voice"])
   end
+
+  init_voice("tonal_voice", tonal, 1, 2)
+  
+  if (BUFF_DEBUG) then
+    tab.print(buffer_index)
+    tab.print(buffer_index.samples["tonal_voice"])
+  end
 end
 
 
-
 -- todo: file to load and offsets of existing loaded data
-function init_voice(voice_name, file_name, buff_num)
+function init_voice(voice_name, file_name, buff_num, voice_num)
 
   local ch, samples, samplerate = audio.file_info(file_name)
-  local buff_samples = samples -- shim for allowing arbitrary writes to buffer
-  local pre_roll_time = .1 -- amount of time to pad the beginning of the sample in Seconds
+  local buff_duration = samples / samplerate
+  local pre_roll_time = 1 -- amount of time to pad the beginning of the sample in Seconds
   local post_roll_time = pre_roll_time 
-  local buff_start_time = 0 -- time in the buffer to start loading sample data into
+  local buff_start_time = buffer_index.end_time + pre_roll_time -- time in the buffer to start loading sample data into
   local duration = samples/samplerate
-  
+
   print("loading file: "..file_name)
   print("  channels:\t"..ch)
   print("  samples:\t"..samples)
   print("  sample rate:\t"..samplerate.."hz")
   print("  duration:\t"..duration.." sec")
+  print("  buff_num:\t"..buff_num)
+  print("  buff_duration:\t"..buff_duration.." sec")
+  print("  pre_roll_time:\t"..pre_roll_time.." sec")
+  print("  post_roll_time:\t"..post_roll_time.." sec")
+  print("  buff_start_time:\t"..buff_start_time.." sec")
 
   params:add_control(voice_name.."_num",voice_name.."_num",cs_voice_num)
 
@@ -65,20 +78,24 @@ function init_voice(voice_name, file_name, buff_num)
     cs_sample_count
   )
   params:set(voice_name.."_load_start", buff_start_time)
+
   params:add_control(voice_name.."_buffer", voice_name.."_buffer", 
     cs_buffer_num
   )
   params:set(voice_name.."_buffer", buff_num)
-  softcut.buffer_read_mono(file_name,
-    params:get(voice_name.."_load_start"),
-    params:get(voice_name.."_load_start") + pre_roll_time,
-    buff_samples,
+  
+  softcut.buffer_read_mono(
+    file_name,
+    0, -- start point in source file
+    buff_start_time, -- start point in buffer to write
+    buff_duration,
     1, -- read from channel 1 of the source
     params:get(voice_name.."_buffer")
   )
 
   -- data loaded, save data in the buffer index
   buffer_index.samples_loaded = buffer_index.samples_loaded + 1
+  buffer_index.end_time = pre_roll_time + buff_duration + post_roll_time
   buffer_index.samples[voice_name] = {
     file_name       = file_name,
     file_channels   = ch,
@@ -86,7 +103,7 @@ function init_voice(voice_name, file_name, buff_num)
     file_samplerate = samplerate,
     file_duration   = duration,
     buff_num        = buff_num,
-    buff_samples    = buff_samples,
+    buff_duration   = buff_duration,
     buff_channel    = buff_channel, 
     buff_start_time = buff_start_time,
     pre_roll_time   = pre_roll_time,
@@ -109,11 +126,18 @@ function init_voice(voice_name, file_name, buff_num)
       ) 
     end
   )
+  -- todo: does this line up with ^
   params:set(voice_name.."_enable", 1)
 
 
   -- attach the voice number to the buffer where the data was loaded
   -- https://monome.org/norns/modules/softcut.html#buffer
+
+  -- assign to a softcut voice
+  params:set(voice_name.."_num", voice_num)
+  print("Voice: "..params:get(voice_name.."_num"))
+  print("Buffer: "..params:get(voice_name.."_buffer"))
+
   softcut.buffer(
     params:get(voice_name.."_num"),
     params:get(voice_name.."_buffer")
@@ -138,7 +162,7 @@ function init_voice(voice_name, file_name, buff_num)
   params:set(voice_name.."_level", 1.0)
 
 
-  -- disable loop
+  -- set loop enable
   -- https://monome.org/norns/modules/softcut.html#loop
   params:add_control(voice_name.."_loop", voice_name.."_loop", 
     cs_voice_loop
@@ -154,10 +178,10 @@ function init_voice(voice_name, file_name, buff_num)
       ) 
     end
   )
-  params:set(voice_name.."_loop", 0)
+  params:set(voice_name.."_loop", 1) -- @todo: loop settings seem sticky
 
 
-  -- set loop start to 0s
+  -- set loop start to buffer_start_time
   -- https://monome.org/norns/modules/softcut.html#loop_start
   params:add_control(voice_name.."_loop_start", voice_name.."_loop_start", 
     cs_voice_loop_pos
@@ -173,18 +197,20 @@ function init_voice(voice_name, file_name, buff_num)
       ) 
     end
   )
-  params:set(voice_name.."_loop_start", 0)
+  print("buff_start_time: "..buff_start_time)
+  params:set(voice_name.."_loop_start", buff_start_time)
 
 
-  -- set loop end to 10s @todo use actual sample data and padding values
+  -- set loop end to buff_start_time + buff_duration
   -- https://monome.org/norns/modules/softcut.html#loop_end
-  params:add_control(voice_name.."_loop_end", voice_name.."_loop_end", 
+  local param_name = "_loop_end"
+  params:add_control(voice_name..param_name, voice_name..param_name, 
     cs_voice_loop_pos
   )
-  params:set_action(voice_name.."_loop_end", 
+  params:set_action(voice_name..param_name, 
     function(x)
       if (PARAMS_DEBUG) then
-        print("Setting "..voice_name.."_loop_end to: "..x)
+        print("Setting "..voice_name..param_name.." to: "..x)
       end
       softcut.loop_end(
         params:get(voice_name.."_num"),
@@ -192,14 +218,18 @@ function init_voice(voice_name, file_name, buff_num)
       ) 
     end
   )
-  params:set(voice_name.."_loop_end", duration)
+  print("buff_start_time + buff_duration: "..(buff_start_time + buff_duration))
+  params:set(voice_name..param_name, (buff_start_time + buff_duration))
 
 
+  -- set position
   -- https://monome.org/norns/modules/softcut.html#position
-  params:add_control(voice_name.."_position", voice_name.."_position",
+  local position_param_name = voice_name.."_position"
+  print("position_param_name: "..position_param_name)
+  params:add_control(position_param_name, position_param_name,
     cs_voice_loop_pos
   )
-  params:set_action(voice_name.."_position", 
+  params:set_action(position_param_name, 
     function(x)
       if (PARAMS_DEBUG) then
         print("Setting "..voice_name.."_position to: "..x)
@@ -210,7 +240,7 @@ function init_voice(voice_name, file_name, buff_num)
       ) 
     end
   )
-  params:set(voice_name.."_position", 0)
+  params:set(position_param_name, 0)
 
 
   -- https://monome.org/norns/modules/softcut.html#fade_time
@@ -266,10 +296,11 @@ function init_voice(voice_name, file_name, buff_num)
   )
   params:set(voice_name.."_level_slew_time", 0.3)
 
+  return position_param_name
 end
 
 function key(n,z)
-  params:set("perc_voice_position", 0)
+  params:set(ppn, 0) -- todo: this doesn't work
   softcut.position(
     params:get("perc_voice_num"),
     params:get("perc_voice_position")
@@ -279,4 +310,5 @@ function key(n,z)
     params:get("perc_voice_num"),
     1
   )
+
 end
