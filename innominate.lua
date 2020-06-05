@@ -66,7 +66,7 @@ end
 
 function redraw_clock()
   while true do
-    clock.sleep(1/30)
+    clock.sleep(1/15)
     redraw()
   end
 end
@@ -95,8 +95,8 @@ end
 
 options = {
   {0,3,5,7,10,15},
-  {0,-12,7,10,7,15,5},
-  {0,12,5,0,12,10,18},
+  {0,-12,7,10,7,12,5},
+  {0,12,5,0,12,10,17},
   {0,0,0,3,12,5}
 }
 
@@ -129,14 +129,14 @@ end
 
 function shift()
   while true do
-    clock.sync(#arp)
+    clock.sync(#arp/2)
     z = (z+0.25) % 3
   end
 end
 
 function trans()
   while true do
-    clock.sync(#arp/2)
+    clock.sync(#arp/4)
     transpose = -12
     clock.sync(0.25)
     transpose = 0
@@ -182,8 +182,8 @@ function update_c()
   c.py = c.y
   c.dx = util.clamp(c.dx + (math.random()-0.5)*complexity,-10,10)
   c.dy = util.clamp(c.dy + (math.random()-0.5)*complexity,-10,10)
-  c.x = (c.x + c.dx) % 128
-  c.y = (c.y + c.dy) % 64
+  c.x = (c.x + c.dx) % 140
+  c.y = (c.y + c.dy) % 80
 end
 
 
